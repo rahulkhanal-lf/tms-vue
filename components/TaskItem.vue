@@ -67,6 +67,8 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
+import { useTasks } from '~/composables/useTasks'
+import { useAppToast } from '~/composables/useAppToast'
 import type { Task, Priority } from '~/composables/useTasks'
 
 const props = defineProps<{ task: Task }>()
@@ -74,8 +76,10 @@ const props = defineProps<{ task: Task }>()
 const emit = defineEmits<{
   toggle: [id: number]
   delete: [id: number]
-  edit: [id: number, title: string, priority: Priority]
 }>()
+
+const { editTask } = useTasks()
+const toast = useAppToast()
 
 const editing = ref(false)
 const editTitle = ref('')
@@ -97,10 +101,16 @@ async function startEdit() {
 }
 
 function saveEdit() {
-  if (!editTitle.value.trim()) { editError.value = 'Title cannot be empty.'; return }
-  emit('edit', props.task.id, editTitle.value.trim(), editPriority.value)
-  editing.value = false
-  editError.value = ''
+  try {
+    editTask(props.task.id, editTitle.value, editPriority.value)
+    editing.value = false
+    editError.value = ''
+    toast.success('Task updated successfully!')
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Invalid input'
+    editError.value = message
+    toast.error(message)
+  }
 }
 
 function cancelEdit() {

@@ -30,25 +30,29 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useTasks } from '~/composables/useTasks'
+import { useAppToast } from '~/composables/useAppToast'
 import type { Priority } from '~/composables/useTasks'
 
-const emit = defineEmits<{
-  add: [title: string, priority: Priority]
-}>()
+const { addTask } = useTasks()
+const toast = useAppToast()
 
-const title = ref('')
+const title    = ref('')
 const priority = ref<Priority>('medium')
-const error = ref('')
+const error    = ref('')
 
 function submit() {
-  if (!title.value.trim()) {
-    error.value = 'Task title cannot be empty.'
-    return
-  }
   error.value = ''
-  emit('add', title.value.trim(), priority.value)
-  title.value = ''
-  priority.value = 'medium'
+  try {
+    addTask(title.value, priority.value)
+    title.value = ''
+    priority.value = 'medium'
+    toast.success('Task added successfully!')
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Invalid input'
+    error.value = message
+    toast.error(message)
+  }
 }
 </script>
 

@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { z } from 'zod'
 
 export type Priority = 'high' | 'medium' | 'low'
 
@@ -10,6 +11,14 @@ export interface Task {
   createdAt: Date
 }
 
+// Zod schemas
+const PrioritySchema = z.enum(['high', 'medium', 'low'])
+
+const TaskTitleSchema = z.string()
+  .trim()
+  .min(1, 'Task title cannot be empty')
+  .max(200, 'Task title is too long (max 200 characters)')
+
 const tasks = ref<Task[]>([])
 let nextId = 1
 
@@ -18,13 +27,33 @@ export function useTasks() {
   const pendingCount = computed(() => tasks.value.filter(t => !t.completed).length)
 
   function addTask(title: string, priority: Priority = 'medium') {
-    const trimmed = title.trim()
-    if (!trimmed) return
+    // Validate title with zod
+    const titleResult = TaskTitleSchema.safeParse(title)
+    if (!titleResult.success) {
+      throw new Error(titleResult.error.issues[0].message)
+    }
+
+    // Validate priority with zod
+    const priorityResult = PrioritySchema.safeParse(priority)
+    if (!priorityResult.success) {
+      throw new Error('Invalid priority value')
+    }
+
+    const trimmed = titleResult.data
+
+    // Check for duplicate (case-insensitive)
+    const duplicate = tasks.value.find(
+      t => t.title.toLowerCase() === trimmed.toLowerCase()
+    )
+    if (duplicate) {
+      throw new Error('A task with this title already exists')
+    }
+
     tasks.value.push({
       id: nextId++,
       title: trimmed,
       completed: false,
-      priority,
+      priority: priorityResult.data,
       createdAt: new Date()
     })
   }
@@ -41,10 +70,31 @@ export function useTasks() {
   function editTask(id: number, title: string, priority: Priority) {
     const task = tasks.value.find(t => t.id === id)
     if (!task) return
-    const trimmed = title.trim()
-    if (!trimmed) return
+
+    // Validate title with zod
+    const titleResult = TaskTitleSchema.safeParse(title)
+    if (!titleResult.success) {
+      throw new Error(titleResult.error.issues[0].message)
+    }
+
+    // Validate priority with zod
+    const priorityResult = PrioritySchema.safeParse(priority)
+    if (!priorityResult.success) {
+      throw new Error('Invalid priority value')
+    }
+
+    const trimmed = titleResult.data
+
+    // Check duplicate — exclude the task being edited itself
+    const duplicate = tasks.value.find(
+      t => t.id !== id && t.title.toLowerCase() === trimmed.toLowerCase()
+    )
+    if (duplicate) {
+      throw new Error('A task with this title already exists')
+    }
+
     task.title = trimmed
-    task.priority = priority
+    task.priority = priorityResult.data
   }
 
   function hydrateTasks(incoming: Task[]) {

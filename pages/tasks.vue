@@ -42,13 +42,12 @@
       </div>
     </div>
 
-    <TaskInput @add="handleAdd" />
+    <TaskInput />
 
     <TaskList
       :tasks="filteredTasks"
       @toggle="toggleTaskStatus"
-      @delete="deleteTask"
-      @edit="editTask"
+      @delete="handleDelete"
     />
 
   </div>
@@ -57,9 +56,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useTasks } from '~/composables/useTasks'
+import { useAppToast } from '~/composables/useAppToast'
 import type { Priority } from '~/composables/useTasks'
 
-const { tasks, addTask, toggleTaskStatus, deleteTask, editTask } = useTasks()
+const { tasks, toggleTaskStatus, deleteTask } = useTasks()
+const toast = useAppToast()
 
 const activeStatus   = ref<'all' | 'active' | 'completed'>('all')
 const activePriority = ref<'all' | Priority>('all')
@@ -85,8 +86,9 @@ const filteredTasks = computed(() => {
   return result
 })
 
-function handleAdd(title: string, priority: Priority) {
-  addTask(title, priority)
+function handleDelete(id: number) {
+  deleteTask(id)
+  toast.info('Task deleted')
 }
 </script>
 

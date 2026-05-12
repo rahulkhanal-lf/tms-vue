@@ -7,7 +7,6 @@
         :task="task"
         @toggle="emit('toggle', $event)"
         @delete="emit('delete', $event)"
-        @edit="(id, title, priority) => emit('edit', id, title, priority)"
       />
     </TransitionGroup>
 

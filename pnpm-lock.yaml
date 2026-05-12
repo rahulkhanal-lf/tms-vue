@@ -20,6 +20,12 @@ importers:
       vue-router:
         specifier: ^4.5.0
         version: 4.6.4(vue@3.5.34)
+      vue-toastification:
+        specifier: 2.0.0-rc.5
+        version: 2.0.0-rc.5(vue@3.5.34)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
 
 packages:
 
@@ -3403,6 +3409,11 @@ packages:
     peerDependencies:
       vue: ^3.5.0
 
+  vue-toastification@2.0.0-rc.5:
+    resolution: {integrity: sha512-q73e5jy6gucEO/U+P48hqX+/qyXDozAGmaGgLFm5tXX4wJBcVsnGp4e/iJqlm9xzHETYOilUuwOUje2Qg1JdwA==}
+    peerDependencies:
+      vue: ^3.0.2
+
   vue@3.5.34:
     resolution: {integrity: sha512-WdLBG9gm02OgJIG9axd5Hpx0TFLdzVgfG2evFFu8Rur5O/IoGc5cMjnjh3tPL6GnRGsYvUhBSKVPYVcxRKpMCA==}
     peerDependencies:
@@ -3495,6 +3506,9 @@ packages:
   zip-stream@6.0.1:
     resolution: {integrity: sha512-zK7YHHz4ZXpW89AHXUPbQVGKI7uvkd3hzusTdotCg1UxyaVtg0zFJSTfW/Dq5f7OBBVnq6cZIaC8Ti4hb6dtCA==}
     engines: {node: '>= 14'}
+
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
 snapshots:
 
@@ -6996,6 +7010,10 @@ snapshots:
       '@vue/devtools-api': 6.6.4
       vue: 3.5.34
 
+  vue-toastification@2.0.0-rc.5(vue@3.5.34):
+    dependencies:
+      vue: 3.5.34
+
   vue@3.5.34:
     dependencies:
       '@vue/compiler-dom': 3.5.34
@@ -7087,3 +7105,5 @@ snapshots:
       archiver-utils: 5.0.2
       compress-commons: 6.0.2
       readable-stream: 4.7.0
+
+  zod@4.4.3: {}
