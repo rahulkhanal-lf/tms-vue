@@ -16,3 +16,4 @@ v-model	Used in HTML forms with tags like <form>, <input> and <button>. Creates 
   :value="title"           👈 Binds the ref value to input's value property
   @input="(event) => title = event.target.value"  👈 Updates ref when user types
 />
+

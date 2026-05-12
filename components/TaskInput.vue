@@ -30,12 +30,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useTasks } from '~/composables/useTasks'
-import { useAppToast } from '~/composables/useAppToast'
-import type { Priority } from '~/composables/useTasks'
+import { useTaskStore } from '~/stores/useTaskStore'
+import type { Priority } from '~/stores/useTaskStore'
 
-const { addTask } = useTasks()
-const toast = useAppToast()
+const taskStore = useTaskStore()
 
 const title    = ref('')
 const priority = ref<Priority>('medium')
@@ -44,14 +42,11 @@ const error    = ref('')
 function submit() {
   error.value = ''
   try {
-    addTask(title.value, priority.value)
+    taskStore.addTask(title.value, priority.value)
     title.value = ''
     priority.value = 'medium'
-    toast.success('Task added successfully!')
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Invalid input'
-    error.value = message
-    toast.error(message)
+    error.value = e instanceof Error ? e.message : 'Invalid input'
   }
 }
 </script>

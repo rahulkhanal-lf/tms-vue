@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Task, Priority } from '~/composables/useTasks'
+import type { Task, Priority } from '~/stores/useTaskStore'
 
 defineProps<{ tasks: Task[] }>()
 

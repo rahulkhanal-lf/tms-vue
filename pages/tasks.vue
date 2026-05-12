@@ -2,100 +2,61 @@
   <div class="page">
 
     <div class="page-header">
-      <h1 class="page-title">Tasks</h1>
-      <p class="page-sub">{{ tasks.length }} task{{ tasks.length === 1 ? '' : 's' }} total</p>
+      <div>
+        <h1 class="page-title">Tasks</h1>
+        <p class="page-sub">{{ taskStore.tasks.length }} task{{ taskStore.tasks.length === 1 ? '' : 's' }} total</p>
+      </div>
+      <button
+        v-if="taskStore.completedTasks.length > 0"
+        class="clear-btn"
+        @click="taskStore.clearCompleted()"
+      >
+        Clear completed
+      </button>
     </div>
 
-    <!-- Filter bar -->
-    <div class="filter-bar">
-      <div class="filter-group" role="tablist" aria-label="Filter by status">
-        <button
-          v-for="f in statusFilters"
-          :key="f.value"
-          role="tab"
-          :aria-selected="activeStatus === f.value"
-          class="filter-tab"
-          :class="{ 'filter-tab--active': activeStatus === f.value }"
-          @click="activeStatus = f.value"
-        >
-          {{ f.label }}
-        </button>
+    <!-- Error banner -->
+    <Transition name="fade">
+      <div v-if="taskStore.error" class="error-banner" role="alert">
+        <span>⚠️ {{ taskStore.error }}</span>
+        <button class="dismiss-btn" @click="taskStore.clearError()">✕</button>
       </div>
+    </Transition>
 
-      <div class="filter-divider" aria-hidden="true" />
-
-      <div class="filter-group" role="tablist" aria-label="Filter by priority">
-        <button
-          v-for="p in priorityFilters"
-          :key="p.value"
-          role="tab"
-          :aria-selected="activePriority === p.value"
-          class="filter-tab"
-          :class="[
-            { 'filter-tab--active': activePriority === p.value },
-            p.value !== 'all' ? `priority-tab--${p.value}` : ''
-          ]"
-          @click="activePriority = p.value"
-        >
-          {{ p.label }}
-        </button>
-      </div>
-    </div>
+    <!-- Filter + sort bar (driven by preferences store) -->
+    <FilterBar />
 
     <TaskInput />
 
     <TaskList
-      :tasks="filteredTasks"
-      @toggle="toggleTaskStatus"
-      @delete="handleDelete"
+      :tasks="sortedFilteredTasks"
+      @toggle="taskStore.toggleTaskStatus"
+      @delete="taskStore.deleteTask"
     />
 
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useTasks } from '~/composables/useTasks'
-import { useAppToast } from '~/composables/useAppToast'
-import type { Priority } from '~/composables/useTasks'
+import { storeToRefs } from 'pinia'
+import { useTaskStore } from '~/stores/useTaskStore'
+import { useTaskSorting } from '~/composables/useTaskSorting'
 
-const { tasks, toggleTaskStatus, deleteTask } = useTasks()
-const toast = useAppToast()
-
-const activeStatus   = ref<'all' | 'active' | 'completed'>('all')
-const activePriority = ref<'all' | Priority>('all')
-
-const statusFilters = [
-  { value: 'all' as const,       label: 'All' },
-  { value: 'active' as const,    label: 'Active' },
-  { value: 'completed' as const, label: 'Completed' }
-]
-
-const priorityFilters = [
-  { value: 'all' as const,    label: 'All' },
-  { value: 'high' as const,   label: '🔴 High' },
-  { value: 'medium' as const, label: '🟡 Med' },
-  { value: 'low' as const,    label: '🟢 Low' }
-]
-
-const filteredTasks = computed(() => {
-  let result = tasks.value
-  if (activeStatus.value === 'active')    result = result.filter(t => !t.completed)
-  if (activeStatus.value === 'completed') result = result.filter(t => t.completed)
-  if (activePriority.value !== 'all')     result = result.filter(t => t.priority === activePriority.value)
-  return result
-})
-
-function handleDelete(id: number) {
-  deleteTask(id)
-  toast.info('Task deleted')
-}
+const taskStore = useTaskStore()
+const { sortedFilteredTasks } = useTaskSorting()
 </script>
 
 <style scoped>
 .page { max-width: 680px; }
 
-.page-header { margin-bottom: 1.5rem; }
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
 
 .page-title {
   font-size: 1.6rem;
@@ -111,69 +72,46 @@ function handleDelete(id: number) {
   margin-top: 0.25rem;
 }
 
-/* Filter bar */
-.filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 1.25rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
+.clear-btn {
+  padding: 0.4rem 1rem;
   border-radius: var(--radius-pill);
-  padding: 0.3rem 0.4rem;
-  box-shadow: var(--shadow-sm);
-  width: fit-content;
-}
-
-.filter-group {
-  display: flex;
-  gap: 0.15rem;
-}
-
-.filter-divider {
-  width: 1px;
-  height: 18px;
-  background: var(--border);
-  flex-shrink: 0;
-  align-self: center;
-}
-
-.filter-tab {
-  padding: 0.28rem 0.75rem;
-  border-radius: var(--radius-pill);
-  border: none;
+  border: 1.5px solid var(--border);
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  white-space: nowrap;
+  transition: all 0.15s;
   font-family: var(--font);
+  white-space: nowrap;
+}
+.clear-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--danger-light);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
 }
 
-.filter-tab:hover {
-  background: var(--hover);
-  color: var(--text);
+.dismiss-btn {
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: var(--radius-sm);
 }
+.dismiss-btn:hover { background: rgba(0,0,0,0.08); }
 
-.filter-tab--active {
-  background: var(--primary);
-  color: #fff;
-}
-
-.priority-tab--high.filter-tab--active   { background: #dc2626; }
-.priority-tab--medium.filter-tab--active { background: #d97706; }
-.priority-tab--low.filter-tab--active    { background: #16a34a; }
-
-@media (max-width: 640px) {
-  .filter-bar {
-    width: 100%;
-    border-radius: var(--radius-lg);
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .filter-divider { width: 100%; height: 1px; }
-}
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

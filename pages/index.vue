@@ -57,7 +57,7 @@
             />
           </svg>
           <div class="ring-center">
-            <span class="ring-pct">{{ percentage }}%</span>
+            <span class="ring-pct">{{ completionPercentage }}%</span>
             <span class="ring-sub">done</span>
           </div>
         </div>
@@ -67,8 +67,8 @@
             You've completed
             <strong>{{ completedCount }}</strong> out of
             <strong>{{ tasks.length }}</strong> tasks.
-            <template v-if="percentage === 100"> 🎉 All done!</template>
-            <template v-else-if="percentage >= 50"> Keep going!</template>
+            <template v-if="completionPercentage === 100"> 🎉 All done!</template>
+            <template v-else-if="completionPercentage >= 50"> Keep going!</template>
             <template v-else> Let's get started!</template>
           </p>
           <NuxtLink to="/tasks" class="progress-link">View all tasks →</NuxtLink>
@@ -80,17 +80,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useTasks } from '~/composables/useTasks'
+import { computed, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useTaskStore } from '~/stores/useTaskStore'
+import { useTaskStats } from '~/composables/useTaskStats'
 
-const { tasks, completedCount, pendingCount } = useTasks()
+const taskStore = useTaskStore()
+const { tasks } = storeToRefs(taskStore)
+const { completedCount, pendingCount, completionPercentage, completionLabel } = useTaskStats()
 
-const percentage = computed(() =>
-  tasks.value.length === 0 ? 0 : Math.round((completedCount.value / tasks.value.length) * 100)
-)
-
-const circumference = 2 * Math.PI * 38  // r=38
-const dashOffset = computed(() => circumference - (percentage.value / 100) * circumference)
+const circumference = 2 * Math.PI * 38
+const dashOffset = computed(() => circumference - (completionPercentage.value / 100) * circumference)
 
 const today = computed(() => new Date().toLocaleDateString('en-US', {
   weekday: 'long', month: 'long', day: 'numeric'

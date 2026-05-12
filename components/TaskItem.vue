@@ -67,9 +67,8 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
-import { useTasks } from '~/composables/useTasks'
-import { useAppToast } from '~/composables/useAppToast'
-import type { Task, Priority } from '~/composables/useTasks'
+import { useTaskStore } from '~/stores/useTaskStore'
+import type { Task, Priority } from '~/stores/useTaskStore'
 
 const props = defineProps<{ task: Task }>()
 
@@ -78,8 +77,7 @@ const emit = defineEmits<{
   delete: [id: number]
 }>()
 
-const { editTask } = useTasks()
-const toast = useAppToast()
+const taskStore = useTaskStore()
 
 const editing = ref(false)
 const editTitle = ref('')
@@ -102,14 +100,12 @@ async function startEdit() {
 
 function saveEdit() {
   try {
-    editTask(props.task.id, editTitle.value, editPriority.value)
+    taskStore.editTask(props.task.id, editTitle.value, editPriority.value)
     editing.value = false
     editError.value = ''
-    toast.success('Task updated successfully!')
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Invalid input'
     editError.value = message
-    toast.error(message)
   }
 }
 
