@@ -13,14 +13,17 @@
           @change="emit('toggle', task.id)"
           :aria-label="`Mark '${task.title}' as ${task.completed ? 'incomplete' : 'complete'}`"
         />
-        <span class="checkmark" aria-hidden="true" />
+        <span class="custom-check" aria-hidden="true">
+          <span v-if="task.completed" class="check-tick">✓</span>
+        </span>
       </label>
 
-      <span class="priority-badge" :class="`badge--${task.priority}`">
-        {{ priorityLabel }}
-      </span>
-
-      <span class="task-title">{{ task.title }}</span>
+      <div class="task-body">
+        <span class="task-title">{{ task.title }}</span>
+        <span class="priority-dot" :class="`dot--${task.priority}`" :title="task.priority">
+          {{ priorityLabel }}
+        </span>
+      </div>
 
       <div class="actions">
         <button class="btn-icon btn-edit" @click="startEdit" :aria-label="`Edit: ${task.title}`" title="Edit">
@@ -94,10 +97,7 @@ async function startEdit() {
 }
 
 function saveEdit() {
-  if (!editTitle.value.trim()) {
-    editError.value = 'Title cannot be empty.'
-    return
-  }
+  if (!editTitle.value.trim()) { editError.value = 'Title cannot be empty.'; return }
   emit('edit', props.task.id, editTitle.value.trim(), editPriority.value)
   editing.value = false
   editError.value = ''
@@ -113,96 +113,108 @@ function cancelEdit() {
 .task-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.85rem 1.1rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  gap: 0.85rem;
+  padding: 0.75rem 1rem;
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.15s, transform 0.15s;
+  transition: background 0.12s;
   flex-wrap: wrap;
   position: relative;
-  border-left-width: 3px;
+  cursor: default;
 }
 
-.task-item:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateX(2px);
-}
+.task-item:hover { background: var(--hover); }
+.task-item--done { opacity: 0.5; }
+.task-item--done .task-title { text-decoration: line-through; color: var(--text-muted); }
 
-.task-item--high   { border-left-color: #dc2626; }
-.task-item--medium { border-left-color: #d97706; }
-.task-item--low    { border-left-color: #16a34a; }
-
-.task-item--done {
-  opacity: 0.5;
-}
-
-.task-item--done .task-title {
-  text-decoration: line-through;
-  color: var(--text-muted);
-}
-
-/* Custom checkbox */
-.task-check {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  flex-shrink: 0;
-}
+/* Custom circular checkbox */
+.task-check { display: flex; align-items: center; cursor: pointer; flex-shrink: 0; }
 
 .task-check input[type='checkbox'] {
-  width: 17px;
-  height: 17px;
-  accent-color: var(--primary);
-  cursor: pointer;
-  border-radius: 4px;
+  position: absolute;
+  opacity: 0;
+  width: 0; height: 0;
 }
 
-/* Priority badge */
-.priority-badge {
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.18rem 0.6rem;
-  border-radius: var(--radius-pill);
-  white-space: nowrap;
-  letter-spacing: 0.04em;
+.custom-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, background 0.15s;
   flex-shrink: 0;
 }
 
-.badge--high   { background: #fef2f2; color: #b91c1c; }
-.badge--medium { background: #fffbeb; color: #92400e; }
-.badge--low    { background: #f0fdf4; color: #15803d; }
+.task-check:hover .custom-check { border-color: var(--primary); }
 
-.dark .badge--high   { background: #2d1515; color: #fca5a5; }
-.dark .badge--medium { background: #292010; color: #fcd34d; }
-.dark .badge--low    { background: #142d1e; color: #86efac; }
+.task-item--done .custom-check {
+  background: var(--primary);
+  border-color: var(--primary);
+}
 
-/* Title */
-.task-title {
+.check-tick {
+  font-size: 0.65rem;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Task body */
+.task-body {
   flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.task-title {
   font-size: 0.92rem;
   color: var(--text);
+  font-weight: 500;
   word-break: break-word;
   min-width: 0;
-  font-weight: 500;
 }
 
-/* Actions */
-.actions {
-  display: flex;
-  gap: 0.2rem;
-  align-items: center;
+/* Priority inline label */
+.priority-dot {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.12rem 0.5rem;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
   flex-shrink: 0;
 }
+
+.dot--high   { background: #fef2f2; color: #b91c1c; }
+.dot--medium { background: #fffbeb; color: #92400e; }
+.dot--low    { background: #f0fdf4; color: #15803d; }
+
+.dark .dot--high   { background: #2d1515; color: #fca5a5; }
+.dark .dot--medium { background: #292010; color: #fcd34d; }
+.dark .dot--low    { background: #142d1e; color: #86efac; }
+
+/* Actions — hidden until hover */
+.actions {
+  display: flex;
+  gap: 0.15rem;
+  align-items: center;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.task-item:hover .actions { opacity: 1; }
 
 .btn-icon {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0.3rem 0.45rem;
+  padding: 0.28rem 0.4rem;
   border-radius: var(--radius-sm);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   line-height: 1;
   transition: background 0.15s, color 0.15s;
   color: var(--text-muted);

@@ -17,7 +17,6 @@
   color: var(--text);
 }
 
-/* AWS-style soft gradient strip below the header */
 .page-hero {
   height: 6px;
   background: linear-gradient(90deg, #7c3aed 0%, #a78bfa 40%, #818cf8 70%, #60a5fa 100%);
@@ -33,8 +32,6 @@
 }
 
 @media (max-width: 768px) {
-  .main-content {
-    padding: 1.5rem 1rem;
-  }
+  .main-content { padding: 1.5rem 1rem; }
 }
 </style>

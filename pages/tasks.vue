@@ -1,10 +1,9 @@
 <template>
-  <div>
+  <div class="page">
+
     <div class="page-header">
-      <div>
-        <h1 class="page-title">Tasks</h1>
-        <p class="page-subtitle">Add, edit, and manage your tasks.</p>
-      </div>
+      <h1 class="page-title">Tasks</h1>
+      <p class="page-sub">{{ tasks.length }} task{{ tasks.length === 1 ? '' : 's' }} total</p>
     </div>
 
     <!-- Filter bar -->
@@ -44,12 +43,14 @@
     </div>
 
     <TaskInput @add="handleAdd" />
+
     <TaskList
       :tasks="filteredTasks"
       @toggle="toggleTaskStatus"
       @delete="deleteTask"
       @edit="editTask"
     />
+
   </div>
 </template>
 
@@ -70,9 +71,9 @@ const statusFilters = [
 ]
 
 const priorityFilters = [
-  { value: 'all' as const,    label: 'All Priority' },
+  { value: 'all' as const,    label: 'All' },
   { value: 'high' as const,   label: '🔴 High' },
-  { value: 'medium' as const, label: '🟡 Medium' },
+  { value: 'medium' as const, label: '🟡 Med' },
   { value: 'low' as const,    label: '🟢 Low' }
 ]
 
@@ -90,22 +91,22 @@ function handleAdd(title: string, priority: Priority) {
 </script>
 
 <style scoped>
-.page-header {
-  margin-bottom: 1.75rem;
-}
+.page { max-width: 680px; }
+
+.page-header { margin-bottom: 1.5rem; }
 
 .page-title {
-  font-size: 1.75rem;
+  font-size: 1.6rem;
   font-weight: 800;
   color: var(--text);
   letter-spacing: -0.03em;
   line-height: 1.2;
 }
 
-.page-subtitle {
-  font-size: 0.9rem;
+.page-sub {
+  font-size: 0.875rem;
   color: var(--text-muted);
-  margin-top: 0.3rem;
+  margin-top: 0.25rem;
 }
 
 /* Filter bar */
@@ -113,35 +114,36 @@ function handleAdd(title: string, priority: Priority) {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   margin-bottom: 1.25rem;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  padding: 0.35rem 0.5rem;
+  padding: 0.3rem 0.4rem;
   box-shadow: var(--shadow-sm);
   width: fit-content;
 }
 
 .filter-group {
   display: flex;
-  gap: 0.2rem;
+  gap: 0.15rem;
 }
 
 .filter-divider {
   width: 1px;
-  height: 20px;
+  height: 18px;
   background: var(--border);
   flex-shrink: 0;
+  align-self: center;
 }
 
 .filter-tab {
-  padding: 0.3rem 0.85rem;
+  padding: 0.28rem 0.75rem;
   border-radius: var(--radius-pill);
   border: none;
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -170,10 +172,6 @@ function handleAdd(title: string, priority: Priority) {
     flex-direction: column;
     align-items: flex-start;
   }
-
-  .filter-divider {
-    width: 100%;
-    height: 1px;
-  }
+  .filter-divider { width: 100%; height: 1px; }
 }
 </style>
