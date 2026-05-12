@@ -1,0 +1,195 @@
+/* ─── AWS-inspired Purple Design System ─────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* Light mode tokens */
+:root {
+  /* Brand */
+  --primary:        #7c3aed;
+  --primary-dark:   #6d28d9;
+  --primary-light:  #ede9fe;
+  --primary-subtle: #f5f3ff;
+
+  /* Accent (AWS-style teal-ish highlight) */
+  --accent:         #8b5cf6;
+  --accent-hover:   #7c3aed;
+
+  /* Status */
+  --danger:         #dc2626;
+  --danger-light:   #fef2f2;
+  --success:        #16a34a;
+  --success-light:  #f0fdf4;
+  --warning:        #d97706;
+  --warning-light:  #fffbeb;
+
+  /* Surfaces */
+  --bg:             #f8f7ff;
+  --bg-gradient:    linear-gradient(135deg, #f0ebff 0%, #e8f4ff 50%, #f0f4ff 100%);
+  --surface:        #ffffff;
+  --surface-raised: #ffffff;
+  --surface-overlay:#ffffff;
+
+  /* Borders */
+  --border:         #e2e0f0;
+  --border-focus:   #7c3aed;
+
+  /* Text */
+  --text:           #0f0a1e;
+  --text-secondary: #3d3558;
+  --text-muted:     #6b6585;
+  --text-inverse:   #ffffff;
+
+  /* Interactive */
+  --hover:          #f5f3ff;
+  --active:         #ede9fe;
+
+  /* Shadows */
+  --shadow-sm:      0 1px 3px rgba(124,58,237,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:      0 4px 12px rgba(124,58,237,0.12), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-lg:      0 8px 32px rgba(124,58,237,0.16), 0 4px 8px rgba(0,0,0,0.08);
+
+  /* Radius */
+  --radius-sm:      6px;
+  --radius-md:      10px;
+  --radius-lg:      16px;
+  --radius-pill:    999px;
+
+  /* Typography */
+  --font:           'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Dark mode tokens */
+.dark {
+  --primary:        #a78bfa;
+  --primary-dark:   #8b5cf6;
+  --primary-light:  #2e1f5e;
+  --primary-subtle: #1e1535;
+
+  --accent:         #c4b5fd;
+  --accent-hover:   #a78bfa;
+
+  --danger:         #f87171;
+  --danger-light:   #2d1515;
+  --success:        #4ade80;
+  --success-light:  #14291e;
+  --warning:        #fbbf24;
+  --warning-light:  #292010;
+
+  --bg:             #0d0b1a;
+  --bg-gradient:    linear-gradient(135deg, #130d2e 0%, #0d1a2e 50%, #0d1030 100%);
+  --surface:        #1a1530;
+  --surface-raised: #221c3d;
+  --surface-overlay:#2a2248;
+
+  --border:         #2e2650;
+  --border-focus:   #a78bfa;
+
+  --text:           #f0eeff;
+  --text-secondary: #c4b5fd;
+  --text-muted:     #8b7fb8;
+  --text-inverse:   #0f0a1e;
+
+  --hover:          #221c3d;
+  --active:         #2e2650;
+
+  --shadow-sm:      0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md:      0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg:      0 8px 32px rgba(0,0,0,0.5);
+}
+
+/* ─── Reset ──────────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: var(--font);
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+button {
+  font-family: var(--font);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ─── Shared utility classes ─────────────────────────────────────────────────── */
+
+/* AWS-style pill button */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.4rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.btn:active { transform: scale(0.98); }
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--text-inverse);
+  border-color: var(--primary);
+}
+.btn-primary:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+}
+.btn-outline:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-subtle);
+}
+
+/* AWS-style card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s;
+}
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary-light); }
