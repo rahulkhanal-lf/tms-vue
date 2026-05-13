@@ -13,6 +13,13 @@
       >
         Clear completed
       </button>
+      <button
+        class="fetch-btn"
+        @click="taskStore.fetchTasks()"
+        :disabled="loading"
+      >
+        {{ loading ? 'Loading…' : 'Fetch tasks' }}
+      </button>
     </div>
 
     <!-- Error banner -->
@@ -43,6 +50,7 @@ import { useTaskStore } from '~/stores/useTaskStore'
 import { useTaskSorting } from '~/composables/useTaskSorting'
 
 const taskStore = useTaskStore()
+const { loading } = storeToRefs(taskStore)
 const { sortedFilteredTasks } = useTaskSorting()
 </script>
 
@@ -86,6 +94,29 @@ const { sortedFilteredTasks } = useTaskSorting()
   white-space: nowrap;
 }
 .clear-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+.fetch-btn {
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--primary);
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font);
+  white-space: nowrap;
+}
+
+.fetch-btn:hover {
+  background: var(--primary-dark);
+}
+
+.fetch-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
 
 .error-banner {
   display: flex;
