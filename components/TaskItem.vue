@@ -4,7 +4,7 @@
     :class="[`task-item--${task.priority}`, { 'task-item--done': task.completed }]"
   >
     <!-- VIEW MODE -->
-    <template v-if="!editing">
+    <template v-if="!editing && !showCollaborators">
       <label class="task-check" :for="`task-${task.id}`">
         <input
           :id="`task-${task.id}`"
@@ -23,15 +23,70 @@
         <span class="priority-dot" :class="`dot--${task.priority}`" :title="task.priority">
           {{ priorityLabel }}
         </span>
+        <span v-if="isOwner && collaboratorCount > 0" class="collab-badge" :title="`${collaboratorCount} collaborator${collaboratorCount !== 1 ? 's' : ''}`">
+          👥 {{ collaboratorCount }}
+        </span>
       </div>
 
       <div class="actions">
+        <button v-if="isOwner" class="btn-icon btn-collab" @click="openCollaborators" :aria-label="`Manage collaborators for: ${task.title}`" title="Manage collaborators">
+          👥
+        </button>
         <button class="btn-icon btn-edit" @click="startEdit" :aria-label="`Edit: ${task.title}`" title="Edit">
           ✏️
         </button>
-        <button class="btn-icon btn-delete" @click="emit('delete', task.id)" :aria-label="`Delete: ${task.title}`" title="Delete">
+        <button v-if="isOwner" class="btn-icon btn-delete" @click="emit('delete', task.id)" :aria-label="`Delete: ${task.title}`" title="Delete">
           ✕
         </button>
+      </div>
+    </template>
+
+    <!-- COLLABORATORS MODE -->
+    <template v-else-if="!editing && showCollaborators">
+      <div class="collab-panel">
+        <button class="btn-back" @click="closeCollaborators" aria-label="Back to task">← Back</button>
+        <h3 class="collab-title">Manage Collaborators</h3>
+        
+        <div class="collab-list">
+          <p v-if="!task.collaborators || task.collaborators.length === 0" class="no-collab">
+            No collaborators yet
+          </p>
+          <div v-else class="collab-items">
+            <div v-for="collab in task.collaborators" :key="collab.id" class="collab-item">
+              <span class="collab-email">{{ collab.email }}</span>
+              <button 
+                class="btn-icon btn-remove"
+                @click="removeCollab(collab.id)"
+                :aria-label="`Remove ${collab.email}`"
+                title="Remove"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="collab-add">
+          <label :for="`collab-input-${task.id}`" class="sr-only">Add collaborator by email</label>
+          <input
+            :id="`collab-input-${task.id}`"
+            v-model="newCollabEmail"
+            type="email"
+            placeholder="user@example.com"
+            class="collab-input"
+            @keydown.enter="addCollab"
+            :disabled="addingCollab"
+          />
+          <button 
+            class="btn-add-collab"
+            @click="addCollab"
+            :disabled="!newCollabEmail || addingCollab"
+            aria-label="Add collaborator"
+          >
+            {{ addingCollab ? '...' : 'Add' }}
+          </button>
+        </div>
+        <p v-if="collabError" class="collab-error" role="alert">{{ collabError }}</p>
       </div>
     </template>
 
@@ -68,6 +123,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
 import { useTaskStore } from '~/stores/useTaskStore'
+import { useAuthStore } from '~/stores/useAuthStore'
 import type { Task, Priority } from '~/stores/useTaskStore'
 
 const props = defineProps<{ task: Task }>()
@@ -78,6 +134,7 @@ const emit = defineEmits<{
 }>()
 
 const taskStore = useTaskStore()
+const authStore = useAuthStore()
 
 const editing = ref(false)
 const editTitle = ref('')
@@ -85,9 +142,17 @@ const editPriority = ref<Priority>('medium')
 const editError = ref('')
 const editInputRef = ref<HTMLInputElement | null>(null)
 
+const showCollaborators = ref(false)
+const newCollabEmail = ref('')
+const addingCollab = ref(false)
+const collabError = ref('')
+
 const priorityLabel = computed(() => (
   { high: '● High', medium: '● Med', low: '● Low' }[props.task.priority]
 ))
+
+const isOwner = computed(() => props.task.userId === authStore.user?.id)
+const collaboratorCount = computed(() => props.task.collaborators?.length || 0)
 
 async function startEdit() {
   editTitle.value = props.task.title
@@ -112,6 +177,46 @@ function saveEdit() {
 function cancelEdit() {
   editing.value = false
   editError.value = ''
+}
+
+function openCollaborators() {
+  showCollaborators.value = true
+  collabError.value = ''
+  newCollabEmail.value = ''
+}
+
+function closeCollaborators() {
+  showCollaborators.value = false
+  collabError.value = ''
+  newCollabEmail.value = ''
+}
+
+async function addCollab() {
+  if (!newCollabEmail.value.trim()) {
+    collabError.value = 'Please enter an email'
+    return
+  }
+
+  addingCollab.value = true
+  collabError.value = ''
+
+  try {
+    await taskStore.addCollaborator(props.task.id, newCollabEmail.value)
+    newCollabEmail.value = ''
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Failed to add collaborator'
+    collabError.value = msg
+  } finally {
+    addingCollab.value = false
+  }
+}
+
+async function removeCollab(collaboratorId: number) {
+  try {
+    await taskStore.removeCollaborator(props.task.id, collaboratorId)
+  } catch (e) {
+    collabError.value = e instanceof Error ? e.message : 'Failed to remove collaborator'
+  }
 }
 </script>
 
@@ -275,5 +380,156 @@ function cancelEdit() {
   clip: rect(0,0,0,0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Collaborator badge */
+.collab-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--primary-light);
+  color: var(--primary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-collab {
+  color: var(--primary);
+}
+
+.btn-collab:hover {
+  background: var(--primary-subtle);
+}
+
+/* Collaborators panel */
+.collab-panel {
+  width: 100%;
+  padding: 1rem;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.btn-back {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0;
+  margin-bottom: 0.5rem;
+  transition: opacity 0.15s;
+}
+
+.btn-back:hover { opacity: 0.8; }
+
+.collab-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+}
+
+.collab-list {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: var(--surface-elevated);
+  border-radius: var(--radius-sm);
+}
+
+.no-collab {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.collab-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.collab-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.6rem;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+
+.collab-email {
+  color: var(--text);
+  flex: 1;
+  word-break: break-all;
+}
+
+.btn-remove {
+  color: var(--danger);
+  padding: 0.2rem 0.3rem;
+  flex-shrink: 0;
+}
+
+.btn-remove:hover {
+  background: var(--danger-light);
+}
+
+/* Add collaborator */
+.collab-add {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.collab-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  font-family: var(--font);
+  transition: border-color 0.15s;
+}
+
+.collab-input:focus {
+  border-color: var(--primary);
+}
+
+.collab-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-add-collab {
+  padding: 0.5rem 1rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-add-collab:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+.btn-add-collab:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.collab-error {
+  font-size: 0.75rem;
+  color: var(--danger);
+  margin: 0;
 }
 </style>

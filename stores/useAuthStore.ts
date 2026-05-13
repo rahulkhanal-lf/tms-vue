@@ -79,7 +79,7 @@ export const useAuthStore = defineStore('auth', () => {
     notif.notify('info', 'Logged out')
     setTimeout(() => {
       window.location.reload()
-    }, 1000)
+    }, 200)
   }
 
   async function initializeAuth() {

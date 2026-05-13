@@ -6,12 +6,19 @@ import { useAuthStore } from './useAuthStore'
 
 export type Priority = 'high' | 'medium' | 'low'
 
+export interface Collaborator {
+  id: number
+  email: string
+}
+
 export interface Task {
   id: number
   title: string
   completed: boolean
   priority: Priority
   createdAt: Date
+  userId: number
+  collaborators?: Collaborator[]
 }
 
 interface TaskRow {
@@ -21,6 +28,7 @@ interface TaskRow {
   priority: Priority
   created_at: string
   sort_order: number
+  user_id: number
 }
 
 const apiBase = '/api/tasks'
@@ -42,8 +50,41 @@ const mapTaskRow = (row: TaskRow): Task => ({
   title: row.title,
   completed: Boolean(row.completed),
   priority: (PrioritySchema.safeParse(row.priority).success ? row.priority : 'medium') as Priority,
-  createdAt: new Date(row.created_at)
+  createdAt: new Date(row.created_at),
+  userId: row.user_id,
+  collaborators: []
 })
+
+function getApiErrorMessage(e: unknown, fallback: string) {
+  if (typeof e === 'object' && e !== null) {
+    const error = e as {
+      data?: {
+        statusMessage?: unknown
+        message?: unknown
+      }
+      statusMessage?: unknown
+      message?: unknown
+    }
+
+    if (typeof error.data?.statusMessage === 'string' && error.data.statusMessage.trim()) {
+      return error.data.statusMessage
+    }
+
+    if (typeof error.data?.message === 'string' && error.data.message.trim()) {
+      return error.data.message
+    }
+
+    if (typeof error.statusMessage === 'string' && error.statusMessage.trim()) {
+      return error.statusMessage
+    }
+  }
+
+  if (e instanceof Error && e.message.trim()) {
+    return e.message
+  }
+
+  return fallback
+}
 
 // ── Zod schemas ────────────────────────────────────────────────
 const PrioritySchema = z.enum(['high', 'medium', 'low'])
@@ -116,9 +157,27 @@ export const useTaskStore = defineStore('tasks', () => {
       tasks.value = data.map(mapTaskRow)
       syncNextId()
       lastFetchedAt.value = new Date()
+
+      // Fetch collaborators for each task where user is the owner
+      const headers = getAuthHeaders()
+      await Promise.all(
+        tasks.value
+          .filter(task => task.userId === useAuthStore().user?.id)
+          .map(task =>
+            $fetch<Collaborator[]>(`/api/tasks/${task.id}/collaborators`, { headers })
+              .then(collaborators => {
+                task.collaborators = collaborators
+              })
+              .catch(() => {
+                // Silently ignore collaborator fetch errors
+                task.collaborators = []
+              })
+          )
+      )
+
       notif.notify('success', `Loaded ${tasks.value.length} tasks`)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Failed to load tasks'
+      const msg = getApiErrorMessage(e, 'Failed to load tasks')
       error.value = msg
       notif.notify('error', msg)
     } finally {
@@ -230,6 +289,67 @@ export const useTaskStore = defineStore('tasks', () => {
     error.value = null
   }
 
+  async function fetchCollaborators(taskId: number) {
+    try {
+      const collaborators = await $fetch<Collaborator[]>(`/api/tasks/${taskId}/collaborators`, {
+        headers: getAuthHeaders()
+      })
+      const task = tasks.value.find(t => t.id === taskId)
+      if (task) {
+        task.collaborators = collaborators
+      }
+      return collaborators
+    } catch (e) {
+      const msg = getApiErrorMessage(e, 'Failed to fetch collaborators')
+      const notif = useNotificationStore()
+      notif.notify('error', msg)
+      throw new Error(msg)
+    }
+  }
+
+  async function addCollaborator(taskId: number, email: string) {
+    const notif = useNotificationStore()
+    try {
+      const result = await $fetch<{ success: boolean; userId: number; email: string }>(
+        `/api/tasks/${taskId}/collaborators`,
+        {
+          method: 'POST',
+          body: { email },
+          headers: getAuthHeaders()
+        }
+      )
+      const task = tasks.value.find(t => t.id === taskId)
+      if (task && task.collaborators) {
+        task.collaborators.push({ id: result.userId, email: result.email })
+      }
+      notif.notify('success', `Added ${email} as collaborator`)
+      return result
+    } catch (e) {
+      const msg = getApiErrorMessage(e, 'Failed to add collaborator')
+      notif.notify('error', msg)
+      throw new Error(msg)
+    }
+  }
+
+  async function removeCollaborator(taskId: number, collaboratorId: number) {
+    const notif = useNotificationStore()
+    try {
+      await $fetch(`/api/tasks/${taskId}/collaborators/${collaboratorId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      })
+      const task = tasks.value.find(t => t.id === taskId)
+      if (task && task.collaborators) {
+        task.collaborators = task.collaborators.filter(c => c.id !== collaboratorId)
+      }
+      notif.notify('success', 'Collaborator removed')
+    } catch (e) {
+      const msg = getApiErrorMessage(e, 'Failed to remove collaborator')
+      notif.notify('error', msg)
+      throw new Error(msg)
+    }
+  }
+
   // Hydrate from persisted data (called by persistence plugin)
   function hydrateTasks(incoming: Task[]) {
     tasks.value = incoming.map(t => ({
@@ -248,6 +368,7 @@ export const useTaskStore = defineStore('tasks', () => {
     completionPercentage, tasksByDate, isEmpty,
     // actions
     fetchTasks, addTask, toggleTaskStatus, deleteTask, editTask,
-    clearCompleted, reorderTasks, clearError, hydrateTasks
+    clearCompleted, reorderTasks, clearError, hydrateTasks,
+    fetchCollaborators, addCollaborator, removeCollaborator
   }
 })

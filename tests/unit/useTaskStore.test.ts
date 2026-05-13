@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useTaskStore } from '~/stores/useTaskStore'
+import { useNotificationStore } from '~/stores/useNotificationStore'
 
 // Mock $fetch globally
 ;(globalThis as any).$fetch = vi.fn()
@@ -222,5 +223,32 @@ describe('useTaskStore', () => {
     store.clearError()
 
     expect(store.error).toBe(null)
+  })
+
+  it('should show clean API error messages for collaborator failures', async () => {
+    const store = useTaskStore()
+    const notifications = useNotificationStore()
+    store.hydrateTasks([
+      {
+        id: 3,
+        title: 'Shared task',
+        completed: false,
+        priority: 'medium',
+        createdAt: new Date(),
+        userId: 1,
+        collaborators: []
+      }
+    ])
+
+    const fetchError = Object.assign(
+      new Error('[POST] "/api/tasks/3/collaborators": 409 User is already a collaborator'),
+      { data: { statusMessage: 'User is already a collaborator' } }
+    )
+    ;(globalThis as any).$fetch.mockRejectedValueOnce(fetchError)
+
+    await expect(store.addCollaborator(3, 'user@example.com'))
+      .rejects.toThrow('User is already a collaborator')
+
+    expect(notifications.notifications[0].message).toBe('User is already a collaborator')
   })
 })

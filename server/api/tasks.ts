@@ -8,8 +8,12 @@ export default defineEventHandler(async (event) => {
 
   if (method === 'GET') {
     const [rows] = await pool.query(
-      'SELECT id, title, completed, priority, created_at, sort_order FROM tasks WHERE user_id = ? ORDER BY sort_order DESC, created_at DESC',
-      [user.id]
+      `SELECT DISTINCT t.id, t.title, t.completed, t.priority, t.created_at, t.sort_order, t.user_id
+       FROM tasks t
+       LEFT JOIN task_collaborators tc ON t.id = tc.task_id
+       WHERE t.user_id = ? OR tc.user_id = ?
+       ORDER BY t.sort_order DESC, t.created_at DESC`,
+      [user.id, user.id]
     )
     return rows
   }
