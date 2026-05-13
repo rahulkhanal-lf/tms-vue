@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS tasks (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  title VARCHAR(200) NOT NULL,
+  completed TINYINT(1) NOT NULL DEFAULT 0,
+  priority ENUM('high', 'medium', 'low') NOT NULL DEFAULT 'medium',
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY unique_task_title (title)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

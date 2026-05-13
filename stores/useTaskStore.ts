@@ -13,6 +13,25 @@ export interface Task {
   createdAt: Date
 }
 
+interface TaskRow {
+  id: number
+  title: string
+  completed: number
+  priority: Priority
+  created_at: string
+  sort_order: number
+}
+
+const apiBase = '/api/tasks'
+
+const mapTaskRow = (row: TaskRow): Task => ({
+  id: row.id,
+  title: row.title,
+  completed: Boolean(row.completed),
+  priority: (PrioritySchema.safeParse(row.priority).success ? row.priority : 'medium') as Priority,
+  createdAt: new Date(row.created_at)
+})
+
 // ── Zod schemas ────────────────────────────────────────────────
 const PrioritySchema = z.enum(['high', 'medium', 'low'])
 
@@ -73,22 +92,15 @@ export const useTaskStore = defineStore('tasks', () => {
     const notif = useNotificationStore()
     loading.value = true
     error.value = null
+
     try {
-      const data = await $fetch<{ id: number; title: string; completed: boolean }[]>(
-        'https://jsonplaceholder.typicode.com/todos?_limit=5'
-      )
-      tasks.value = data.map(item => ({
-        id: item.id,
-        title: item.title,
-        completed: item.completed,
-        priority: 'medium' as Priority,
-        createdAt: new Date()
-      }))
+      const data = await $fetch<TaskRow[]>(apiBase)
+      tasks.value = data.map(mapTaskRow)
       syncNextId()
       lastFetchedAt.value = new Date()
       notif.notify('success', `Loaded ${tasks.value.length} tasks`)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Failed to fetch tasks'
+      const msg = e instanceof Error ? e.message : 'Failed to load tasks'
       error.value = msg
       notif.notify('error', msg)
     } finally {
@@ -96,7 +108,7 @@ export const useTaskStore = defineStore('tasks', () => {
     }
   }
 
-  function addTask(title: string, priority: Priority = 'medium') {
+   async function addTask(title: string, priority: Priority = 'medium') {
     const notif = useNotificationStore()
     const trimmed = validateTitle(title)
     validatePriority(priority)
@@ -106,63 +118,88 @@ export const useTaskStore = defineStore('tasks', () => {
     )
     if (duplicate) throw new Error('A task with this title already exists')
 
-    tasks.value.push({
-      id: nextId++,
-      title: trimmed,
-      completed: false,
-      priority,
-      createdAt: new Date()
+    const created = await $fetch<TaskRow>(apiBase, {
+      method: 'POST',
+      body: { title: trimmed, priority }
     })
+
+    tasks.value.push(mapTaskRow(created))
+    syncNextId()
     notif.notify('success', 'Task added')
   }
 
-  function toggleTaskStatus(id: number) {
+  async function toggleTaskStatus(id: number) {
     const notif = useNotificationStore()
     const task = tasks.value.find(t => t.id === id)
     if (!task) return
-    task.completed = !task.completed
+
+    const updated = await $fetch<TaskRow>(`${apiBase}/${id}`, {
+      method: 'PATCH',
+      body: { completed: !task.completed }
+    })
+
+    task.completed = Boolean(updated.completed)
     notif.notify('info', task.completed ? `"${task.title}" completed` : `"${task.title}" reopened`)
   }
 
-  function deleteTask(id: number) {
+  async function deleteTask(id: number) {
     const notif = useNotificationStore()
     const task = tasks.value.find(t => t.id === id)
     if (!task) return
+
+    await $fetch(`${apiBase}/${id}`, {
+      method: 'DELETE'
+    })
+
     tasks.value = tasks.value.filter(t => t.id !== id)
     notif.notify('info', `"${task.title}" deleted`)
   }
 
-  function editTask(id: number, title: string, priority: Priority) {
+  async function editTask(id: number, title: string, priority: Priority) {
     const trimmed = validateTitle(title)
     validatePriority(priority)
-
-    const task = tasks.value.find(t => t.id === id)
-    if (!task) return
 
     const duplicate = tasks.value.find(
       t => t.id !== id && t.title.toLowerCase() === trimmed.toLowerCase()
     )
     if (duplicate) throw new Error('A task with this title already exists')
 
-    task.title = trimmed
-    task.priority = priority
+    const updated = await $fetch<TaskRow>(`${apiBase}/${id}`, {
+      method: 'PATCH',
+      body: { title: trimmed, priority }
+    })
+
+    const task = tasks.value.find(t => t.id === id)
+    if (!task) return
+
+    task.title = updated.title
+    task.priority = updated.priority
 
     const notif = useNotificationStore()
     notif.notify('success', 'Task updated')
   }
 
-  function clearCompleted() {
+  async function clearCompleted() {
     const count = completedTasks.value.length
+    await $fetch(apiBase + '?completed=true', {
+      method: 'DELETE'
+    })
+
     tasks.value = tasks.value.filter(t => !t.completed)
     const notif = useNotificationStore()
     notif.notify('info', `Cleared ${count} completed task${count !== 1 ? 's' : ''}`)
   }
 
-  function reorderTasks(fromIndex: number, toIndex: number) {
+  async function reorderTasks(fromIndex: number, toIndex: number) {
     const list = [...tasks.value]
     const [moved] = list.splice(fromIndex, 1)
     list.splice(toIndex, 0, moved)
     tasks.value = list
+
+    await $fetch('/api/tasks/reorder', {
+      method: 'PUT',
+      body: { ids: list.map(task => task.id) }
+    })
   }
 
   function clearError() {

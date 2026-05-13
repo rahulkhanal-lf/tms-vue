@@ -9,6 +9,7 @@ describe('useTaskStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
+    ;(globalThis as any).$fetch = vi.fn()
   })
 
   it('should initialize with empty tasks', () => {
@@ -19,9 +20,19 @@ describe('useTaskStore', () => {
     expect(store.isEmpty).toBe(true)
   })
 
-  it('should add a task', () => {
+  it('should add a task', async () => {
     const store = useTaskStore()
-    store.addTask('Test Task')
+    const mockedTask = {
+      id: 1,
+      title: 'Test Task',
+      completed: 0,
+      priority: 'medium',
+      created_at: new Date().toISOString(),
+      sort_order: 1
+    }
+    ;(globalThis as any).$fetch.mockResolvedValueOnce(mockedTask)
+
+    await store.addTask('Test Task')
 
     expect(store.tasks).toHaveLength(1)
     expect(store.tasks[0].title).toBe('Test Task')
@@ -29,59 +40,124 @@ describe('useTaskStore', () => {
     expect(store.tasks[0].id).toBe(1)
   })
 
-  it('should not add duplicate task titles', () => {
+  it('should not add duplicate task titles', async () => {
     const store = useTaskStore()
-    store.addTask('Test Task')
+    const mockedTask = {
+      id: 1,
+      title: 'Test Task',
+      completed: 0,
+      priority: 'medium',
+      created_at: new Date().toISOString(),
+      sort_order: 1
+    }
+    ;(globalThis as any).$fetch.mockResolvedValueOnce(mockedTask)
+    await store.addTask('Test Task')
 
-    expect(() => store.addTask('Test Task')).toThrow('A task with this title already exists')
+    await expect(store.addTask('Test Task')).rejects.toThrow('A task with this title already exists')
     expect(store.tasks).toHaveLength(1)
   })
 
-  it('should toggle task completion', () => {
+  it('should toggle task completion', async () => {
     const store = useTaskStore()
-    store.addTask('Test Task')
+    const mockedTask = {
+      id: 1,
+      title: 'Test Task',
+      completed: 0,
+      priority: 'medium',
+      created_at: new Date().toISOString(),
+      sort_order: 1
+    }
+    ;(globalThis as any).$fetch.mockResolvedValueOnce(mockedTask)
+    await store.addTask('Test Task')
+
+    const toggledTask = { ...mockedTask, completed: 1 }
+    ;(globalThis as any).$fetch.mockResolvedValueOnce(toggledTask)
 
     const taskId = store.tasks[0].id
-    store.toggleTaskStatus(taskId)
+    await store.toggleTaskStatus(taskId)
 
     expect(store.tasks[0].completed).toBe(true)
     expect(store.completedCount).toBe(1)
     expect(store.pendingCount).toBe(0)
   })
 
-  it('should delete a task', () => {
+  it('should delete a task', async () => {
     const store = useTaskStore()
-    store.addTask('Test Task')
+    const mockedTask = {
+      id: 1,
+      title: 'Test Task',
+      completed: 0,
+      priority: 'medium',
+      created_at: new Date().toISOString(),
+      sort_order: 1
+    }
+    ;(globalThis as any).$fetch.mockResolvedValueOnce(mockedTask)
+    await store.addTask('Test Task')
 
+    ;(globalThis as any).$fetch.mockResolvedValueOnce({ success: true })
     const taskId = store.tasks[0].id
-    store.deleteTask(taskId)
+    await store.deleteTask(taskId)
 
     expect(store.tasks).toHaveLength(0)
     expect(store.isEmpty).toBe(true)
   })
 
-  it('should calculate completion percentage', () => {
+  it('should calculate completion percentage', async () => {
     const store = useTaskStore()
-    store.addTask('Task 1')
-    store.addTask('Task 2')
+    const task1 = {
+      id: 1,
+      title: 'Task 1',
+      completed: 0,
+      priority: 'medium',
+      created_at: new Date().toISOString(),
+      sort_order: 1
+    }
+    const task2 = {
+      id: 2,
+      title: 'Task 2',
+      completed: 0,
+      priority: 'medium',
+      created_at: new Date().toISOString(),
+      sort_order: 2
+    }
+
+    ;(globalThis as any).$fetch.mockResolvedValueOnce(task1)
+    await store.addTask('Task 1')
+    ;(globalThis as any).$fetch.mockResolvedValueOnce(task2)
+    await store.addTask('Task 2')
 
     expect(store.completionPercentage).toBe(0)
 
-    store.toggleTaskStatus(store.tasks[0].id)
+    ;(globalThis as any).$fetch.mockResolvedValueOnce({ ...task1, completed: 1 })
+    await store.toggleTaskStatus(store.tasks[0].id)
     expect(store.completionPercentage).toBe(50)
 
-    store.toggleTaskStatus(store.tasks[1].id)
+    ;(globalThis as any).$fetch.mockResolvedValueOnce({ ...task2, completed: 1 })
+    await store.toggleTaskStatus(store.tasks[1].id)
     expect(store.completionPercentage).toBe(100)
   })
 
   it('should fetch tasks from API', async () => {
     const mockData = [
-      { id: 1, title: 'API Task 1', completed: false },
-      { id: 2, title: 'API Task 2', completed: true }
+      {
+        id: 1,
+        title: 'API Task 1',
+        completed: 0,
+        priority: 'medium',
+        created_at: new Date().toISOString(),
+        sort_order: 1
+      },
+      {
+        id: 2,
+        title: 'API Task 2',
+        completed: 1,
+        priority: 'medium',
+        created_at: new Date().toISOString(),
+        sort_order: 2
+      }
     ]
 
-    // @ts-ignore
-    global.$fetch.mockResolvedValue(mockData)
+    ;(globalThis as any).$fetch.mockResolvedValueOnce(mockData)
 
     const store = useTaskStore()
     await store.fetchTasks()
@@ -95,7 +171,7 @@ describe('useTaskStore', () => {
   })
 
   it('should handle API fetch error', async () => {
-    (globalThis as any).$fetch.mockRejectedValue(new Error('Network error'))
+    ;(globalThis as any).$fetch.mockRejectedValue(new Error('Network error'))
 
     const store = useTaskStore()
     await store.fetchTasks()
@@ -105,13 +181,35 @@ describe('useTaskStore', () => {
     expect(store.loading).toBe(false)
   })
 
-  it('should clear completed tasks', () => {
+  it('should clear completed tasks', async () => {
     const store = useTaskStore()
-    store.addTask('Task 1')
-    store.addTask('Task 2')
-    store.toggleTaskStatus(store.tasks[0].id)
+    const task1 = {
+      id: 1,
+      title: 'Task 1',
+      completed: 0,
+      priority: 'medium',
+      created_at: new Date().toISOString(),
+      sort_order: 1
+    }
+    const task2 = {
+      id: 2,
+      title: 'Task 2',
+      completed: 0,
+      priority: 'medium',
+      created_at: new Date().toISOString(),
+      sort_order: 2
+    }
 
-    store.clearCompleted()
+    ;(globalThis as any).$fetch.mockResolvedValueOnce(task1)
+    await store.addTask('Task 1')
+    ;(globalThis as any).$fetch.mockResolvedValueOnce(task2)
+    await store.addTask('Task 2')
+
+    ;(globalThis as any).$fetch.mockResolvedValueOnce({ ...task1, completed: 1 })
+    await store.toggleTaskStatus(store.tasks[0].id)
+
+    ;(globalThis as any).$fetch.mockResolvedValueOnce({ success: true })
+    await store.clearCompleted()
 
     expect(store.tasks).toHaveLength(1)
     expect(store.tasks[0].title).toBe('Task 2')

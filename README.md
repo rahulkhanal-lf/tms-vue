@@ -1,6 +1,6 @@
 # Task Dashboard
 
-A personal task management app built with **Vue 3** and **Nuxt 3**. Demonstrates file-based routing, shared reactive state via composables, localStorage persistence, dark mode, and animated UI — all without any external state library.
+A personal task management app built with **Vue 3** and **Nuxt 3**. Demonstrates file-based routing, shared reactive state via composables, server API persistence with MySQL, dark mode, and animated UI.
 
 ---
 
@@ -10,17 +10,26 @@ A personal task management app built with **Vue 3** and **Nuxt 3**. Demonstrates
 # Install dependencies
 pnpm install
 
+# Start MySQL in Docker
+pnpm exec docker compose up -d
+
 # Start development server
 pnpm dev
-
-# Build for production
-pnpm build
-
-# Preview production build
-pnpm preview
 ```
 
-App runs at `http://localhost:3000`.
+App runs at `http://localhost:3000` and connects to MySQL at `127.0.0.1:3306`.
+
+---
+
+## Database
+
+This project includes a MySQL Docker setup in `docker-compose.yml` and an initialization script at `docker/mysql-init.sql`.
+
+- Database: `tasksdb`
+- User: `app`
+- Password: `secret`
+
+The Nuxt backend uses `/api/tasks` for task persistence instead of client-side `localStorage`.
 
 ---
 

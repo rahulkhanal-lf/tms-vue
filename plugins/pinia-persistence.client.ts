@@ -1,39 +1,15 @@
 /**
  * Pinia persistence plugin — SSR-safe, browser-only.
- * Persists: useTaskStore (tasks array only) + usePreferencesStore (full state).
- * Never persists: useNotificationStore.
+ * Persists only user preferences in localStorage.
  */
 import { watch } from 'vue'
-import { useTaskStore } from '~/stores/useTaskStore'
 import { usePreferencesStore } from '~/stores/usePreferencesStore'
 
-const TASK_KEY  = 'task-dashboard:tasks'
-const PREF_KEY  = 'task-dashboard:preferences'
-
-// Debounce helper — prevents excessive writes on rapid toggles
-function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
-  let timer: ReturnType<typeof setTimeout>
-  return ((...args: unknown[]) => {
-    clearTimeout(timer)
-    timer = setTimeout(() => fn(...args), ms)
-  }) as T
-}
+const PREF_KEY = 'task-dashboard:preferences'
 
 export default defineNuxtPlugin(() => {
-  const taskStore = useTaskStore()
   const prefStore = usePreferencesStore()
 
-  // ── Hydrate tasks ────────────────────────────────────────
-  try {
-    const raw = localStorage.getItem(TASK_KEY)
-    if (raw) {
-      taskStore.hydrateTasks(JSON.parse(raw))
-    }
-  } catch {
-    localStorage.removeItem(TASK_KEY)
-  }
-
-  // ── Hydrate preferences ──────────────────────────────────
   try {
     const raw = localStorage.getItem(PREF_KEY)
     if (raw) {
@@ -51,14 +27,6 @@ export default defineNuxtPlugin(() => {
     localStorage.removeItem(PREF_KEY)
   }
 
-  // ── Persist tasks (debounced — max once per second) ──────
-  const saveTasks = debounce(() => {
-    localStorage.setItem(TASK_KEY, JSON.stringify(taskStore.tasks))
-  }, 1000)
-
-  watch(() => taskStore.tasks, saveTasks, { deep: true })
-
-  // ── Persist preferences (immediate) ─────────────────────
   watch(
     () => ({
       theme:            prefStore.theme,
