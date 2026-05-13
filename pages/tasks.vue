@@ -41,9 +41,23 @@
 import { storeToRefs } from 'pinia'
 import { useTaskStore } from '~/stores/useTaskStore'
 import { useTaskSorting } from '~/composables/useTaskSorting'
+import { onMounted } from 'vue'
+import { useAuthStore } from '~/stores/useAuthStore'
 
+const authStore = useAuthStore()
 const taskStore = useTaskStore()
 const { sortedFilteredTasks } = useTaskSorting()
+
+onMounted(async () => {
+  if (import.meta.client) {
+    await authStore.initializeAuth()
+    if (!authStore.isAuthenticated) {
+      return navigateTo('/auth')
+    }
+    taskStore.fetchTasks()
+  }
+})
+
 </script>
 
 <style scoped>

@@ -1,13 +1,17 @@
-import { useTaskStore } from '~/stores/useTaskStore'
+// import { useTaskStore } from '~/stores/useTaskStore'
+// import { useAuthStore } from '~/stores/useAuthStore'
 
-export default defineNuxtPlugin((nuxtApp) => {
-  const taskStore = useTaskStore()
+// export default defineNuxtPlugin((nuxtApp) => {
+//   const authStore = useAuthStore()
+//   const taskStore = useTaskStore()
 
-  nuxtApp.hook('app:mounted', async () => {
-    if (taskStore.isEmpty) {
-      await taskStore.fetchTasks().catch(() => {
-        // Errors are handled inside the store.
-      })
-    }
-  })
-})
+//   authStore.initializeAuth()
+
+//   nuxtApp.hook('app:mounted', async () => {
+//     if (authStore.isAuthenticated && taskStore.isEmpty) {
+//       await taskStore.fetchTasks().catch(() => {
+//         // Errors are handled inside the store.
+//       })
+//     }
+//   })
+// })

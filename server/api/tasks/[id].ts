@@ -6,6 +6,7 @@ export default defineEventHandler(async (event) => {
   const pool = getDbPool()
   const method = event.req.method
   const id = Number(event.context.params?.id)
+  const user = event.context.user as { id: number }
 
   if (!Number.isInteger(id) || id <= 0) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid task id' })
@@ -40,18 +41,19 @@ export default defineEventHandler(async (event) => {
     }
 
     values.push(id)
-    await pool.execute(`UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`, values)
+    values.push(user.id)
+    await pool.execute(`UPDATE tasks SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`, values)
 
     const [rows] = await pool.query(
-      'SELECT id, title, completed, priority, created_at, sort_order FROM tasks WHERE id = ?',
-      [id]
+      'SELECT id, title, completed, priority, created_at, sort_order FROM tasks WHERE id = ? AND user_id = ?',
+      [id, user.id]
     )
 
     return Array.isArray(rows) && rows.length > 0 ? rows[0] : null
   }
 
   if (method === 'DELETE') {
-    await pool.execute('DELETE FROM tasks WHERE id = ?', [id])
+    await pool.execute('DELETE FROM tasks WHERE id = ? AND user_id = ?', [id, user.id])
     return { success: true }
   }
 

@@ -8,7 +8,7 @@
       </div>
 
       <!-- Nav -->
-      <nav class="nav" aria-label="Main navigation">
+      <nav v-if="authStore.isAuthenticated" class="nav" aria-label="Main navigation">
         <NuxtLink to="/" class="nav-link" exact-active-class="nav-link--active">Dashboard</NuxtLink>
         <NuxtLink to="/tasks" class="nav-link" active-class="nav-link--active">Tasks</NuxtLink>
         <NuxtLink to="/about" class="nav-link" active-class="nav-link--active">About</NuxtLink>
@@ -16,6 +16,12 @@
 
       <!-- Right side -->
       <div class="header-right">
+        <div v-if="authStore.isAuthenticated" class="user-menu">
+          <span class="user-email">{{ authStore.user?.email }}</span>
+          <button @click="authStore.logout()" class="logout-btn">Logout</button>
+        </div>
+        <NuxtLink v-else to="/auth" class="login-btn">Login</NuxtLink>
+
         <button
           class="theme-toggle"
           @click="toggleColorMode"
@@ -31,7 +37,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useAuthStore } from '~/stores/useAuthStore'
 
+const authStore = useAuthStore()
 const colorMode = useColorMode()
 const isDark = computed(() => colorMode.value === 'dark')
 function toggleColorMode() {

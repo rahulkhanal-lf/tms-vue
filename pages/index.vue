@@ -80,14 +80,26 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useTaskStore } from '~/stores/useTaskStore'
 import { useTaskStats } from '~/composables/useTaskStats'
+import { useAuthStore } from '~/stores/useAuthStore'
 
+const authStore = useAuthStore()
 const taskStore = useTaskStore()
 const { tasks } = storeToRefs(taskStore)
 const { completedCount, pendingCount, completionPercentage, completionLabel } = useTaskStats()
+
+onMounted(async () => {
+  if (import.meta.client) {
+    await authStore.initializeAuth()
+    if (!authStore.isAuthenticated) {
+      return navigateTo('/auth')
+    }
+    taskStore.fetchTasks()
+  }
+})
 
 const circumference = 2 * Math.PI * 38
 const dashOffset = computed(() => circumference - (completionPercentage.value / 100) * circumference)

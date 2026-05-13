@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { z } from 'zod'
 import { useNotificationStore } from './useNotificationStore'
+import { useAuthStore } from './useAuthStore'
 
 export type Priority = 'high' | 'medium' | 'low'
 
@@ -23,6 +24,18 @@ interface TaskRow {
 }
 
 const apiBase = '/api/tasks'
+
+const getAuthHeaders = () => {
+  const headers: Record<string, string> = {}
+  if (import.meta.client) {
+    const token = localStorage.getItem('auth_token')
+    console.log('Token from localStorage:', token ? 'exists' : 'null')
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+  }
+  return headers
+}
 
 const mapTaskRow = (row: TaskRow): Task => ({
   id: row.id,
@@ -89,12 +102,17 @@ export const useTaskStore = defineStore('tasks', () => {
 
   // ── Actions ────────────────────────────────────────────────
   async function fetchTasks() {
+    // Don't fetch on server side
+    if (import.meta.server) return
+
     const notif = useNotificationStore()
     loading.value = true
     error.value = null
 
     try {
-      const data = await $fetch<TaskRow[]>(apiBase)
+      const data = await $fetch<TaskRow[]>(apiBase, {
+        headers: getAuthHeaders()
+      })
       tasks.value = data.map(mapTaskRow)
       syncNextId()
       lastFetchedAt.value = new Date()
@@ -120,7 +138,8 @@ export const useTaskStore = defineStore('tasks', () => {
 
     const created = await $fetch<TaskRow>(apiBase, {
       method: 'POST',
-      body: { title: trimmed, priority }
+      body: { title: trimmed, priority },
+      headers: getAuthHeaders()
     })
 
     tasks.value.push(mapTaskRow(created))
@@ -135,7 +154,8 @@ export const useTaskStore = defineStore('tasks', () => {
 
     const updated = await $fetch<TaskRow>(`${apiBase}/${id}`, {
       method: 'PATCH',
-      body: { completed: !task.completed }
+      body: { completed: !task.completed },
+      headers: getAuthHeaders()
     })
 
     task.completed = Boolean(updated.completed)
@@ -148,7 +168,8 @@ export const useTaskStore = defineStore('tasks', () => {
     if (!task) return
 
     await $fetch(`${apiBase}/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: getAuthHeaders()
     })
 
     tasks.value = tasks.value.filter(t => t.id !== id)
@@ -166,7 +187,8 @@ export const useTaskStore = defineStore('tasks', () => {
 
     const updated = await $fetch<TaskRow>(`${apiBase}/${id}`, {
       method: 'PATCH',
-      body: { title: trimmed, priority }
+      body: { title: trimmed, priority },
+      headers: getAuthHeaders()
     })
 
     const task = tasks.value.find(t => t.id === id)
@@ -182,7 +204,8 @@ export const useTaskStore = defineStore('tasks', () => {
   async function clearCompleted() {
     const count = completedTasks.value.length
     await $fetch(apiBase + '?completed=true', {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: getAuthHeaders()
     })
 
     tasks.value = tasks.value.filter(t => !t.completed)
@@ -198,7 +221,8 @@ export const useTaskStore = defineStore('tasks', () => {
 
     await $fetch('/api/tasks/reorder', {
       method: 'PUT',
-      body: { ids: list.map(task => task.id) }
+      body: { ids: list.map(task => task.id) },
+      headers: getAuthHeaders()
     })
   }
 

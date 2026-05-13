@@ -51,6 +51,20 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
+import { useAuthStore } from '~/stores/useAuthStore'
+
+const authStore = useAuthStore()
+
+onMounted(async () => {
+  if (import.meta.client) {
+    await authStore.initializeAuth()
+    if (!authStore.isAuthenticated) {
+      return navigateTo('/auth')
+    }
+  }
+})
+
 const stack = [
   { icon: '💚', name: 'Vue 3',           desc: 'Composition API with <script setup>' },
   { icon: '🔷', name: 'Nuxt 3',          desc: 'File-based routing, layouts, auto-imports' },

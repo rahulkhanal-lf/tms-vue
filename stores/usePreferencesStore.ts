@@ -13,7 +13,6 @@ export const usePreferencesStore = defineStore('preferences', () => {
   const sortDirection    = ref<SortDirection>('desc')
   const filterStatus     = ref<FilterStatus>('all')
   const filterPriority   = ref<'all' | 'high' | 'medium' | 'low'>('all')
-  const sidebarCollapsed = ref(false)
 
   // ── Getters ────────────────────────────────────────────────
   const isDarkMode = computed(() => {
@@ -55,10 +54,6 @@ export const usePreferencesStore = defineStore('preferences', () => {
     }
   }
 
-  function toggleSidebar() {
-    sidebarCollapsed.value = !sidebarCollapsed.value
-  }
-
   function setSortBy(field: SortBy, direction: SortDirection = 'desc') {
     sortBy.value = field
     sortDirection.value = direction
@@ -78,15 +73,14 @@ export const usePreferencesStore = defineStore('preferences', () => {
     sortDirection.value  = 'desc'
     filterStatus.value   = 'all'
     filterPriority.value = 'all'
-    sidebarCollapsed.value = false
   }
 
   return {
     // state
-    theme, sortBy, sortDirection, filterStatus, filterPriority, sidebarCollapsed,
+    theme, sortBy, sortDirection, filterStatus, filterPriority,
     // getters
     isDarkMode, activeSortLabel,
     // actions
-    setTheme, toggleSidebar, setSortBy, setFilter, setPriorityFilter, resetDefaults
+    setTheme, setSortBy, setFilter, setPriorityFilter, resetDefaults
   }
 })

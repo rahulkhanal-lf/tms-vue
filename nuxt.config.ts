@@ -11,6 +11,7 @@ export default defineNuxtConfig({
     mysqlPort: Number(process.env.MYSQL_PORT || 3306),
     mysqlUser: process.env.MYSQL_USER || 'app',
     mysqlPassword: process.env.MYSQL_PASSWORD || 'secret',
-    mysqlDatabase: process.env.MYSQL_DATABASE || 'tasksdb'
+    mysqlDatabase: process.env.MYSQL_DATABASE || 'tasksdb',
+    jwtSecret: process.env.JWT_SECRET || 'your-secret-key-change-in-production'
   }
 })
